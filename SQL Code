@@ -1,0 +1,19 @@
+WITH gp AS
+	(SELECT CookieName, CookieID, RevenuePerCookie-CostPerCookie AS gross_rev
+	FROM Product
+	WHERE RevenuePerCookie-CostPerCookie =
+		(SELECT TOP(1)RevenuePerCookie-CostPerCookie AS gross_rev
+		FROM Product
+		ORDER BY gross_rev DESC))
+
+SELECT Month, CookieName, CookieID, MAX(monthly_sales) AS Monthly_Sales
+FROM
+	(SELECT MONTH(OrderDate) AS Month,
+	CookieName, gp.CookieID,
+	SUM(Quantity) OVER(PARTITION BY MONTH(OrderDate)) AS monthly_sales
+	FROM gp
+	INNER JOIN Order_Product op ON gp.CookieID = op.CookieID
+	INNER JOIN dbo.Orders o ON op.OrderID = o.OrderID) AS BestCookie
+GROUP BY Month, CookieName, CookieID 
+ORDER BY Monthly_Sales DESC;
+	
